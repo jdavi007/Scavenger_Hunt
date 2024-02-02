@@ -1,0 +1,22 @@
+<!--  HTML for Completed Events Page (Student Specific) -->
+<!-- Currently displays images and titles of completed events without links to individual completed event pages -->
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w3-main" style="margin-left:340px;margin-right:40px">
+
+<h1>{% block title %} Completed Events {% endblock %}</h1>
+   
+    {% for event in events %}
+    <div class="w3-quarter">
+        <center>
+            <!--Add link to completed event page-->
+            <img src="{{ url_for('event_image', id=event['id']) }}", style="width: 75%"></center>
+        </center>
+        <center><h2>{{ event['title'] }}</h2></center>
+    </div>
+    {% endfor %}
+    
+</div>
+{% endblock %}

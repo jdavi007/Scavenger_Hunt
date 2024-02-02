@@ -1,0 +1,28 @@
+<!--  HTML for Event Index Page (Staff Specific)  -->
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w3-main" style="margin-left:340px;margin-right:40px">
+    <h1>{% block title %} Current Events {% endblock %}</h1>
+   
+    {% for event in events %}
+        <div class="w3-quarter">
+        <center>
+        <a href="{{ url_for('edit', id=event['id']) }}">
+            <img src="{{ url_for('event_image', id=event['id']) }}", style="width:75%"></center>
+        </a>
+        </center>
+        <center><h2>Edit "{{ event['title'] }}"</h2></center>
+    </div>
+
+    {% endfor %}
+
+    <!-- Flashed messages for errors -->
+    <div class="w3-container" style="margin-top:5px">
+        {% for message in get_flashed_messages() %}
+        <h1 class="w3-medium w3-text-red"><div class="alert alert-danger">{{ message }}</div></h1>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
