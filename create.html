@@ -1,0 +1,86 @@
+<!-- HTML for Event Creation Page (Staff Specific Form)-->
+{% extends 'base.html' %}
+{% block content %}
+<div class="w3-main" style="margin-left:340px;margin-right:40px">
+    <h1>{% block title %} Create a New Event {% endblock %}</h1>
+
+    <form method="post" enctype="multipart/form-data">
+
+        <div class="w3-section">
+            <label for="inputFile">Cover Image</label>
+            <input class="form-control-file" type="file" name="imageFile">
+        </div>
+
+        <div class="w3-section">
+            <label for="title">Title</label>
+            <input class="w3-input w3-border" type="text" name="title" value="{{ request.form['title'] }}" required>
+        </div>
+
+        <div id="formSections">
+            <div class="formSection">
+                <div class="w3-section">
+                    <label for="taskDescription">Task Description</label>
+                    <textarea class="w3-input w3-border" id="taskDescription" name="taskDescription[]" required></textarea>
+                </div>
+
+                <div style="display: flex; justify-content: space-between;">
+                    <div class="w3-section">
+                        <label for="uploadType">Upload Type:</label>
+                        <select name="uploadType[]" class="uploadType">
+                            <option value="text">Text</option>
+                            <option value="image">Image</option>
+                            <option value="link">Link</option>
+                        </select>
+                    </div>
+                    <button type="button" style="align-self: flex-end;" class="removeSection">Remove Task</button>
+                </div>
+            </div>
+        </div>
+
+        <button type="button" id="addSection">Add Task</button>
+
+        <div style="position: fixed; bottom: 20px; right: 20px;">
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    </form>
+</div>
+
+<!--Script to add/remove a task section-->
+<script>
+    function removeSection(event) {
+        var section = event.target.closest('.formSection');
+        section.remove();
+    }
+
+    document.getElementById('addSection').addEventListener('click', function () {
+        // Clone the template section
+        var template = document.querySelector('.formSection');
+        var clone = template.cloneNode(true);
+
+        // Clear input values in the cloned section
+        var inputs = clone.querySelectorAll('textarea, input');
+        inputs.forEach(function (input) {
+            input.value = '';
+        });
+
+        // Append the cloned section to the formSections div
+        document.getElementById('formSections').appendChild(clone);
+
+        // Add event listener to the remove section button
+        clone.querySelector('.removeSection').addEventListener('click', removeSection);
+    });
+
+    // Add event listener to existing remove section buttons
+    document.querySelectorAll('.removeSection').forEach(function (button) {
+        button.addEventListener('click', removeSection);
+    });
+</script>
+
+<!--Flashed messaged for errors-->
+<div class="w3-container" style="margin-top:5px">
+    {% for message in get_flashed_messages() %}
+    <h1 class="w3-medium w3-text-red"><div class="alert alert-danger">{{ message }}</div></h1>
+    {% endfor %}
+</div>
+
+{% endblock %}

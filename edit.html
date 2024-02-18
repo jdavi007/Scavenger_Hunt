@@ -1,0 +1,100 @@
+<!--  HTML for Edit Event Page (Staff Specific Form)  -->
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w3-main" style="margin-left:340px;margin-right:40px">
+    <h1>{% block title %} Edit "{{ event['title'] }}" {% endblock %}</h1>
+
+    <form method="post" enctype="multipart/form-data">
+
+        <div class="w3-section">
+            <label for="title">Title</label>
+            <input class="w3-input w3-border" type="text" name="title" value="{{ request.form['title'] or event['title'] }}" placeholder="Event title" required>
+        </div>
+
+        <div class="w3-section">
+            <label for="imageFile">Update Cover Image</label>
+            <input class="form-control-file" type="file" name="imageFile">
+        </div>
+
+        <!-- Display tasks -->
+        <div class="w3-section">
+            {% for task in event['tasks'] %}
+            <div class="formSection">
+                <div class="w3-section">
+                    <label for="task_description">Task Description</label>
+                    <textarea class="w3-input w3-border" name="task_description[]" required>{{ task['description'] }}</textarea>
+                </div>
+                <div style="display: flex; justify-content: space-between;">
+                    <div>
+                        <label for="task_upload_type">Upload Type:</label>
+                        <select name="task_upload_type[]" class="uploadType">
+                            <option value="text" {% if task['uploadType'] == 'text' %} selected {% endif %}>Text</option>
+                            <option value="image" {% if task['uploadType'] == 'image' %} selected {% endif %}>Image</option>
+                            <option value="link" {% if task['uploadType'] == 'link' %} selected {% endif %}>Link</option>
+                        </select>
+                    </div>
+                    <button type="button" class="removeSection" style="align-self: flex-end;">Remove Task</button>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <button type="button" id="addSection">Add Task</button>
+
+        <div style="position: fixed; bottom: 20px; right: 20px;">
+            <button type="submit" class="btn btn-primary">Submit</button>
+        </div>
+    </form>
+
+    <hr>
+
+    <form action="{{ url_for('delete', id=event['id']) }}" method="POST">
+        <input type="submit" value="Delete Event"
+                class="btn btn-danger btn-sm"
+                onclick="return confirm('Are you sure you want to delete this event?')">
+    </form>
+
+    <!-- Flashed messaged for errors -->
+    <div class="w3-container" style="margin-top:5px">
+        {% for message in get_flashed_messages() %}
+            <h1 class="w3-medium w3-text-red"><div class="alert alert-danger">{{ message }}</div></h1>
+        {% endfor %}
+    </div>
+</div>
+
+<!--Script to add/remove a task section-->
+<script>
+    function removeSection(event) {
+        var section = event.target.closest('.formSection');
+        section.remove();
+    }
+
+    document.getElementById('addSection').addEventListener('click', function () {
+        // Clone the template section
+        var template = document.querySelector('.formSection');
+        var clone = template.cloneNode(true);
+
+        // Clear input values in the cloned section
+        var inputs = clone.querySelectorAll('textarea, input');
+        inputs.forEach(function (input) {
+            input.value = '';
+        });
+
+        // Append the cloned section to the formSections div
+        document.getElementById('formSections').appendChild(clone);
+
+        // Add event listener to the remove section button
+        clone.querySelector('.removeSection').addEventListener('click', removeSection);
+    });
+
+    // Add event listener to existing remove section buttons
+    document.querySelectorAll('.removeSection').forEach(function (button) {
+        button.addEventListener('click', removeSection);
+    });
+</script>
+
+</form>
+</div>
+{% endblock %}
