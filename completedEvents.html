@@ -1,0 +1,22 @@
+<!--  HTML for Completed Events Page (Student Specific) -->
+
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="w3-main" style="margin-left:340px;margin-right:40px">
+
+<h1>{% block title %} Completed Events {% endblock %}</h1>
+   
+    {% for event in events %}
+    <div class="w3-quarter">
+        <center>
+            <a href="{{ url_for('completedEvent', eventID=event['id']) }}">
+                <p> <img src="data:image/jpeg;base64,{{ event['imageBlob'] | b64encode }}" style="width: 75%;"></p>
+            </a>
+        </center>
+        <center><h2>{{ event['title'] }}</h2></center>
+    </div>
+    {% endfor %}
+    
+</div>
+{% endblock %}
