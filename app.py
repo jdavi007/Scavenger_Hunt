@@ -8,6 +8,9 @@ from flask import Flask, render_template, url_for, request, flash, redirect, Res
 from werkzeug.exceptions import abort # For exception handling
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user # For login management
 import base64 # For displaying images stored as binary in database
+import bcrypt # For password hashing
+import requests # For accessing outside weblinks (QR Code)
+import json # For JSON management
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'SeCrEtKeY' # Probably needs to be changed but not entirely sure what this is for
 
@@ -143,6 +146,35 @@ def base64_encode(data):
 app.jinja_env.filters['b64encode'] = base64_encode
 
 
+# ---------------QR Code Generation--------------- #
+def generate_qr_code(data):
+    endpoint = "https://chart.googleapis.com/chart"
+    params = {
+            "cht": "qr",
+            "chs": "300x300",
+            "chl": data
+    }
+
+    response = requests.get(endpoint, params=params)
+
+    # 200 represents success
+    if response.status_code == 200:
+        return response.url
+    else:
+        # Failed to generate a QR code URL
+        return None
+
+def generate_event_json(data):
+    # Holds event objects
+    event_json = []
+    for event, value in data.items():
+        # Event name, completed value (True/False)
+        event_obj = {
+                "event": event,
+                "value": value
+        }
+        event_json.append(event_obj)
+    return json.dumps(event_json)
 
 
 # ------------------------------Pages------------------------------ #
@@ -164,7 +196,7 @@ def login():
         user=list(cursor.fetchone())
         Us = load_user(user[0])
 
-        if email == Us.email and password == Us.password:
+        if email == Us.email and bcrypt.checkpw(password.encode('utf-8'), Us.password):
             login_user(Us)
             if Us.get_admin_stat() == 1:
                 userRole = "staff"
@@ -206,6 +238,7 @@ def signup():
             flash('You must use a vaild UVA Wise email address')
         else:
             conn = get_db_connection()
+            password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             conn.execute('INSERT INTO users (email, password, firstName, lastName, isAdmin) VALUES (?, ?, ?, ? ,?)',
                          (email, password, firstName, lastName, 0))
             conn.commit()
@@ -244,6 +277,7 @@ def addStaff():
             flash('You must use a vaild UVA Wise email address')
         else:
             conn = get_db_connection()
+            password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
             conn.execute('INSERT INTO users (email, password, firstName, lastName, isAdmin) VALUES (?, ?, ?, ? ,?)',
                          (email, password, firstName, lastName, 1))
             conn.commit()
@@ -571,8 +605,8 @@ def delete(id):
 # ------------------------------Hosting------------------------------ #
 
 # App hosted locally at http://127.0.0.1:8000 for testing
-if(__name__=='__main__'):
-    app.run(host="127.0.0.1", port=8000, debug=True)
+#if(__name__=='__main__'):
+#    app.run(host="127.0.0.1", port=8000, debug=True)
 
 # App hosted at http://sc-hunt.mcs.uvawise.edu:22
 #if(__name__=='__main__'):
@@ -583,7 +617,7 @@ if(__name__=='__main__'):
 #    app.run(host="sc-hunt.mcs.uvawise.edu", port=80, debug=True)
 
 # App hosted at http://sc-hunt.mcs.uvawise.edu:443
-#if(__name__=='__main__'):
-#    app.run(host="sc-hunt.mcs.uvawise.edu", port=443, debug=True)
+if(__name__=='__main__'):
+    app.run(host="sc-hunt.mcs.uvawise.edu", port=443, debug=True)
 
 # EOF
