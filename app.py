@@ -599,7 +599,22 @@ def delete(id):
     return redirect(url_for('staffIndex'))
 # end delete()
 
-
+# SQL Injection Scanner - in-progress
+# Precondition: User inputs a string when prompted where it is sent to the function
+# Postcondition: Function checks the input for SQL injection patters. If found, input is denied. If not, input is accepted.
+def sql_injection_detection(user_input):
+    # Tuple of patterns found in SQL injections
+    injection_patterns = (";", "--", "/*", "*/", "xp_", "sleep", "benchmark", "=")
+    # Check input for patterns
+    if any(pattern in user_input.lower() for pattern in sql_injection_patterns):
+        # Log the injection attempt
+        # logging.warning(f"SQL injection detected - Input: {user_input}"): this line can be used to create a log file of all of the attempts on the server.
+        # Return False to indicate login failure
+        return False
+    else:
+        # Return True to indicate there are no SQL injection patterns within input
+        return True
+# end detect_sql_injection()
 
 
 # ------------------------------Hosting------------------------------ #
