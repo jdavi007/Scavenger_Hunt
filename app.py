@@ -11,8 +11,21 @@ import base64 # For displaying images stored as binary in database
 import bcrypt # For password hashing
 import requests # For accessing outside weblinks (QR Code)
 import json # For JSON management
+import secrets # For email auth
+from flask_mail import Mail, Message # For email auth
+import smtplib, ssl # For email auth
 app = Flask(__name__)
+mail = Mail(app) # For email auth
+
 app.config['SECRET_KEY'] = 'SeCrEtKeY' # Probably needs to be changed but not entirely sure what this is for
+
+# Email Auth Stuff - still working on this
+app.config['MAIL_SERVER'] = 'mcs.uvawise.edu'
+app.config['MAIL_PORT'] = 465
+app.config['MAIL_USE_SSL'] = True
+app.config['MAIL_USERNAME'] = 'sc-hunt@mcs.uvawise.edu'
+app.config['MAIL_PASSWORD'] = 'LkkuFcFDthEWxMdv'
+mail.init_app(app)
 
 userRole = "" # Global variable for user type, i.e. staff or student
 
@@ -65,14 +78,15 @@ login_manager.login_view = "login"
 
 # User Class - working
 class User(UserMixin):
-    def __init__(self, id, email, password, firstName, lastName, isAdmin):
+    def __init__(self, id, email, password, firstName, lastName, isAdmin, verificationToken, verified):
         self.id = id # Internal ID from auto incremented int in database
         self.email = email # UVA Wise email address
         self.password = password
         self.firstName = firstName
         self.lastName = lastName
         self.isAdmin = isAdmin # Distinction between staff and student
-        self.authenticated = False
+        self.verificationToken = verificationToken
+        self.verified = verified
     
     def is_active(self):
         return self.is_active()
@@ -80,8 +94,8 @@ class User(UserMixin):
     def is_anonymous(self):
         return False
     
-    def is_authenticated(self):
-        return self.authenticated
+    def is_verified(self):
+        return self.verified
     
     def is_active(self):
         return True
@@ -132,7 +146,7 @@ def load_user(user_id):
     if lu is None:
         return None
     else:
-        return User(int(lu[0]), lu[1], lu[2], lu[3], lu[4], lu[5])
+        return User(int(lu[0]), lu[1], lu[2], lu[3], lu[4], lu[5], lu[6], lu[7])
 # end load_user()
 
 
@@ -164,22 +178,96 @@ def generate_qr_code(data):
         # Failed to generate a QR code URL
         return None
 
+
+
+    
 def generate_event_json(data):
     # Holds event objects
     event_json = []
-    for event, value in data.items():
+    for event in data:
         # Event name, completed value (True/False)
         event_obj = {
-                "event": event,
-                "value": value
+                "event": event['Title'],
+                "value": True
         }
         event_json.append(event_obj)
     return json.dumps(event_json)
 
 
+# ---------------Email Verification--------------- #
+
+# Function to email a verification link - not working
+def emailVerification(email, token):
+    context = ssl._create_unverified_context()
+    recipient = [email]
+    verification_link = url_for('verifyEmail', token=token, _external=True)
+    #port = 465
+    #smtp_server = "mcs.uvawise.edu"
+    #sender_email = "sc-hunt@mcs.uvawise.edu"
+    #password = "LkkuFcFDthEWxMdv"
+    
+    message = f"""From: {app.config['MAIL_USERNAME']}
+    To: {email}
+    Subject: Confirm Your Email with UVA Wise Scavenger Hunt
+    
+    Click the following link to confirm your account: {verification_link}
+    """
+    
+
+    with smtplib.SMTP_SSL(app.config['MAIL_SERVER'], app.config['MAIL_PORT'], context=context) as server:
+        server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        server.sendmail(app.config['MAIL_USERNAME'], recipient, message)
+# end emailVerification()
+
+
+
+
+# Function to email a password reset link - not working
+def emailPassword(email, token):
+    context = ssl._create_unverified_context()
+    recipient = [email]
+    reset_link = url_for('passwordReset', token=token, _external=True)
+    #port = 465
+    #smtp_server = "mcs.uvawise.edu"
+    #sender_email = "sc-hunt@mcs.uvawise.edu"
+    #password = "LkkuFcFDthEWxMdv"
+    
+    message = f"""From: {app.config['MAIL_USERNAME']}
+    To: {email}
+    Subject: Confirm Your Email with UVA Wise Scavenger Hunt
+    
+    Click the following link to reset your password: {reset_link}
+    """
+    
+
+    with smtplib.SMTP_SSL(app.config['MAIL_SERVER'], app.config['MAIL_PORT'], context=context) as server:
+        server.login(app.config['MAIL_USERNAME'], app.config['MAIL_PASSWORD'])
+        server.sendmail(app.config['MAIL_USERNAME'], recipient, message)
+#end emailPassword
+
+
+
+        
+# Funtion to verify a user - not tested
+@app.route('/verify/<token>')
+def verifyEmail(token):
+    conn = get_db_connection()
+    cursor = conn.cursor()
+    cursor.execute('SELECT * FROM users WHERE verificationToken = ?', [token,])
+    user = list(cursor.fetchone())
+    if user:
+        Us = load_user(user[0])
+        id = Us.get_id
+        cursor.execute('UPDATE users SET verified = ? WHERE id = ?', (True, id))
+        flash('Your account was successfully verified', category='success')
+    else:
+        flash('There was an issue processing your request', category='error')
+    return redirect(url_for('login'))
+
+        
 # ------------------------------Pages------------------------------ #
 
-# Login / Landing Page - working, might need security updates
+# Login / Landing Page - Need to check for verified user when we get email working
 # Precondition: Navigation to website url, no user logged in
 # Postcondition: Login page is displayed
 @app.route('/', methods=('GET','POST'))
@@ -189,14 +277,22 @@ def login():
     if request.method=='POST':
         email = request.form['email']
         password = request.form['password']
+
+        # Checks for SQL injection
+        if sql_injection_detection(email) == False:
+            email = None
+            return redirect(url_for('login'))
+        elif sql_injection_detection(password) == False:
+            password = None
+            return redirect(url_for('login'))
         
         conn = get_db_connection()
-        cursor=conn.cursor()
+        cursor = conn.cursor()
         cursor.execute('SELECT * FROM users where email=(?)', [email,])
         user=list(cursor.fetchone())
         Us = load_user(user[0])
 
-        if email == Us.email and bcrypt.checkpw(password.encode('utf-8'), Us.password):
+        if email == Us.email and bcrypt.checkpw(password.encode('utf-8'), Us.password):  # and Us.is_verified
             login_user(Us)
             if Us.get_admin_stat() == 1:
                 userRole = "staff"
@@ -213,10 +309,75 @@ def login():
     return render_template('login.html', bool=True)
 # end login()
 
-    
 
 
-# Student Sign Up Page - needs security updates
+
+# Forgot Password Page - In progress but won't work without email
+@app.route('/forgotPassword', methods=('GET','POST'))
+def forgotPassword():
+    if request.method=='POST':
+        email = request.form['email']
+
+        # Check for SQL injection
+        if sql_injection_detection(email) == False:
+            email = None
+            return redirect(url_for('forgotPassword'))
+
+        # Generate password reset token
+        token = secrets.token_hex(16)
+
+        # Send password reset email
+        #emailPassword(email, token)
+            
+        flash('Please check your email for a password reset link', category='success')
+        return redirect(url_for('login'))
+        
+    return render_template('forgotPassword.html', bool=True)
+# end forgotPassword()
+
+
+
+
+# Password Reset Page - Not tested/won't work without email,
+#                       also need to add token to user table for pw resets
+@app.route('/passwordReset/<token>', methods=('GET','POST'))
+def passwordReset(token):
+    if request.method == 'POST':
+        email = request.form['email']
+        password = request.form['password']
+        confPass = request.form['confPass']
+
+        # Checks for SQL injection
+        if sql_injection_detection(email) == False:
+            email = None
+            return redirect(url_for('passwordReset/<token>'))
+        if sql_injection_detection(password) == False:
+            password = None
+            return redirect(url_for('passwordReset/<token>'))
+        if sql_injection_detection(confPass) == False:
+            confPass = None
+            return redirect(url_for('passwordReset/<token>'))
+
+        conn = get_db_connection()
+        cursor.execute('SELECT * FROM users WHERE passwordToken = ?', [token,])
+        user = list(cursor.fetchone())
+        if user and password == confPass and len(password) > 8:
+            Us = load_user(user[0])
+            id = Us.get_id
+            password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
+            cursor.execute('UPDATE users SET password = ? WHERE id = ?', (password, id))
+            flash('Your password was successfully reset', category='success')
+            return redirect(url_for('login'))
+        else:
+            flash('There was an issue processing your request', category='error')
+
+    return render_template('passwordreset.html', bool=True)
+#end passwordReset()
+
+
+
+
+# Student Sign Up Page - working
 # Precondition: User is not registered
 # Postcondition: User is registered, redirect to login page 
 @app.route('/signup', methods=('GET','POST'))
@@ -228,7 +389,31 @@ def signup():
         password = request.form['password']
         confPass = request.form['confPass']
 
-        #********add check to see if user is already registered*********
+        # Checks for SQL injection
+        if sql_injection_detection(email) == False:
+            email = None
+            return redirect(url_for('signup'))
+        elif sql_injection_detection(firstName) == False:
+            firstName = None
+            return redirect(url_for('signup'))
+        elif sql_injection_detection(lastName) == False:
+            lastName = None
+            return redirect(url_for('signup'))
+        elif sql_injection_detection(password) == False:
+            password = None
+            return redirect(url_for('signup'))
+        elif sql_injection_detection(confPass) == False:
+            confPass = None
+            return redirect(url_for('signup'))
+
+        # Check if user is already registered
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE email=?', [email])
+        if cursor.fetchone():
+            conn.close()
+            flash('Error: Email already registered', category='error')
+            return redirect(url_for('signup'))
 
         if password != confPass:
             flash('Passwords do not match', category='error')
@@ -237,13 +422,21 @@ def signup():
         elif "@uvawise.edu" not in email:
             flash('You must use a vaild UVA Wise email address')
         else:
+            # Generate verification token
+            token = secrets.token_hex(16)
+            
+            # Insert user into database
             conn = get_db_connection()
             password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            conn.execute('INSERT INTO users (email, password, firstName, lastName, isAdmin) VALUES (?, ?, ?, ? ,?)',
-                         (email, password, firstName, lastName, 0))
+            conn.execute('INSERT INTO users (email, password, firstName, lastName, isAdmin, verificationToken, verified) VALUES (?, ?, ?, ? ,?, ?, ?)',
+                         (email, password, firstName, lastName, 0, token, 0))
             conn.commit()
             conn.close()
-            flash('Account created', category='success')
+
+            # Send verification email
+            #emailVerification(email, token)
+            
+            flash('Account created. Please check your email for a verification link', category='success')
             return redirect(url_for('login'))
 
     return render_template('signup.html', bool=True)
@@ -252,7 +445,7 @@ def signup():
 
 
 
-# Add Staff Member Page - needs security updates
+# Add Staff Member Page - working
 # Precondition: An already registered staff member login is required
 # Postcondition: New staff member is registered, redirect to staff home. Current user is not changed
 @app.route('/addStaff', methods=('GET','POST'))
@@ -267,8 +460,16 @@ def addStaff():
         password = request.form['password']
         confPass = request.form['confPass']
 
-        # Needs more password requirements
-        # Needs password hashing
+        # Check if user is already registered
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM users WHERE email=?', [email])
+        if cursor.fetchone():
+            conn.close()
+            flash('Error: Email already registered', category='error')
+            return redirect(url_for('signup'))
+
+        
         if password != confPass:
             flash('Passwords do not match', category='error')
         elif len(password) < 8:
@@ -276,14 +477,22 @@ def addStaff():
         elif "@uvawise.edu" not in email:
             flash('You must use a vaild UVA Wise email address')
         else:
+            # Generate verification token
+            token = secrets.token_hex(16)
+            
+            # Insert user into database
             conn = get_db_connection()
             password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
-            conn.execute('INSERT INTO users (email, password, firstName, lastName, isAdmin) VALUES (?, ?, ?, ? ,?)',
-                         (email, password, firstName, lastName, 1))
+            conn.execute('INSERT INTO users (email, password, firstName, lastName, isAdmin, verificationToken, verified) VALUES (?, ?, ?, ? ,?, ?, ?)',
+                         (email, password, firstName, lastName, 1, token, 0))
             conn.commit()
             conn.close()
-            flash('Account created successfully', category='success')
-            return redirect(url_for('staffIndex'))
+
+            # Email verification
+            #emailVerification(email, token)
+
+            flash('Account created. Please check your email for a verification link', category='success')
+            return redirect(url_for('addStaff.html'))
 
     return render_template('addStaff.html', bool=True, user_role=userRole)
 # end signup()
@@ -358,11 +567,15 @@ def event(eventID):
             
             if uploadType == 'text':
                 response = request.form.get(f'text_{task_id}')
+                if response and sql_injection_detection(response) == False:
+                    response = None
             elif uploadType == 'image':
                 image = request.files.get(f'imageFile_{task_id}')
                 response = image.read() if image else None
             elif uploadType == 'link':
                 response = request.form.get(f'link_{task_id}')
+                if response and sql_injection_detection(response) == False:
+                    response = None
 
             if response:
                 conn.execute('INSERT OR REPLACE INTO studentTasks (task_id, event_id, user_id, hasResponse, response) VALUES (?, ?, ?, ?, ?)',
@@ -413,6 +626,10 @@ def completedEvents():
     conn = get_db_connection()
     events = conn.execute('SELECT * FROM events WHERE id IN (SELECT event_id FROM completedEvents WHERE user_id=(?))', [current_user.id]).fetchall()
 
+    #json_events = generate_event_json(events)
+    #qr_code = generate_qr_code(json_events)
+    #print(qr_code)
+
     conn.close()
 
     return render_template('completedEvents.html', events=events, user_role=userRole)
@@ -458,6 +675,7 @@ def badges():
     conn = get_db_connection()
     events = conn.execute('SELECT * FROM events WHERE id NOT IN (SELECT event_id FROM completedEvents WHERE user_id=(?))', [current_user.id]).fetchall()
     completedEvents = conn.execute('SELECT * FROM events WHERE id IN (SELECT event_id FROM completedEvents WHERE user_id=(?))', [current_user.id]).fetchall()
+    
     conn.close()
     
     return render_template('badges.html', user_role=userRole, events=events, completedEvents=completedEvents)
@@ -599,24 +817,26 @@ def delete(id):
     return redirect(url_for('staffIndex'))
 # end delete()
 
-# SQL Injection Scanner - in-progress
+
+
+
+#### SQL Injection Scanner - in-progress
 # Precondition: User inputs a string when prompted where it is sent to the function
 # Postcondition: Function checks the input for SQL injection patters. If found, input is denied. If not, input is accepted.
 def sql_injection_detection(user_input):
-    # Tuple of patterns found in SQL injections
-    injection_patterns = (";", "--", "/*", "*/", "xp_", "sleep", "benchmark", "=")
-    # Check input for patterns
-    if any(pattern in user_input.lower() for pattern in sql_injection_patterns):
-        # Log the injection attempt
-        # logging.warning(f"SQL injection detected - Input: {user_input}"): this line can be used to create a log file of all of the attempts on the server.
-        # Return False to indicate login failure
-        return False
-    else:
-        # Return True to indicate there are no SQL injection patterns within input
-        return True
+        # Tuple of patterns found in SQL injections
+        injection_patterns = (";", "--", "/*", "*/", "xp_", "sleep", "benchmark", "=")
+        # Check input for patterns
+        if any(pattern in user_input.lower() for pattern in injection_patterns):
+            # Log the injection attempt
+            # logging.warning(f"SQL injection detected - Input: {user_input}"): this line can be used to create a log file of all of the attempts on the server.
+            # Return False to indicate login failure
+            return False
+        else:
+            # Return True to indicate there are no SQL injection patterns within input
+            return True
 # end detect_sql_injection()
-
-
+                        
 # ------------------------------Hosting------------------------------ #
 
 # App hosted locally at http://127.0.0.1:8000 for testing
