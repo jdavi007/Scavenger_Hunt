@@ -18,10 +18,10 @@
         <input class="w3-input w3-border" type="password" name="password" required>
     </div>
 
-    <br />
-    <button type="submit" class="btn btn-primary">Login</button>
-
-    <!-- Add Forgot Password Link -->
+    <div style="display: flex; justify-content: space-between;">
+      <button type="submit" class="btn btn-primary">Login</button>
+      <a href="{{ url_for('forgotPassword') }}" style="align-self: flex-end;" class="btn btn-link">Forgot Password?</a>
+    </div>
 
     <!-- Flashed messaged for errors -->
     <div class="w3-container" style="margin-top:5px">
