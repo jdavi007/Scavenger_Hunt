@@ -4,18 +4,18 @@
 # ------------------------------Setup------------------------------------ #
 
 import sqlite3 # For database
-from flask import Flask, render_template, url_for, request, flash, redirect, Response, send_file # For construction of web apps
+from flask import Flask, render_template, url_for, request, flash, redirect, Response, send_file # For construction of web app
 from werkzeug.exceptions import abort # For exception handling
 from flask_login import LoginManager, UserMixin, login_required, login_user, logout_user, current_user # For login management
 import base64 # For displaying images stored as binary in database
 import bcrypt # For password hashing
 import requests # For accessing outside weblinks (QR Code)
 import json # For JSON management
-import secrets # For email auth
-from flask_mail import Mail, Message # For email auth
-import smtplib, ssl # For email auth
+import secrets # For email
+from flask_mail import Mail, Message # For email
+import smtplib, ssl # For email
 app = Flask(__name__)
-mail = Mail(app) # For email auth
+mail = Mail(app) # For email
 
 app.config['SECRET_KEY'] = 'SeCrEtKeY' # Probably needs to be changed but not entirely sure what this is for
 
@@ -85,8 +85,8 @@ class User(UserMixin):
         self.firstName = firstName
         self.lastName = lastName
         self.isAdmin = isAdmin # Distinction between staff and student
-        self.verificationToken = verificationToken
-        self.verified = verified
+        self.verificationToken = verificationToken # Email verification token
+        self.verified = verified # Boolean for if user is verified or not
     
     def is_active(self):
         return self.is_active()
@@ -194,7 +194,7 @@ def generate_event_json(data):
     return json.dumps(event_json)
 
 
-# ---------------Email Verification--------------- #
+# ---------------Email Verification & Password Reset--------------- #
 
 # Function to email a verification link - not working
 def emailVerification(email, token):
@@ -275,7 +275,7 @@ def login():
     global userRole
 
     if request.method=='POST':
-        email = request.form['email']
+        email = request.form['email'].lower()
         password = request.form['password']
 
         # Checks for SQL injection
@@ -312,7 +312,7 @@ def login():
 
 
 
-# Forgot Password Page - In progress but won't work without email
+# Forgot Password Page - Accessible but nonfunctional until email is fixed
 @app.route('/forgotPassword', methods=('GET','POST'))
 def forgotPassword():
     if request.method=='POST':
@@ -377,7 +377,7 @@ def passwordReset(token):
 
 
 
-# Student Sign Up Page - working
+# Student Sign Up Page - working but does not send verification email
 # Precondition: User is not registered
 # Postcondition: User is registered, redirect to login page 
 @app.route('/signup', methods=('GET','POST'))
@@ -445,7 +445,7 @@ def signup():
 
 
 
-# Add Staff Member Page - working
+# Add Staff Member Page - working but does not send verification email
 # Precondition: An already registered staff member login is required
 # Postcondition: New staff member is registered, redirect to staff home. Current user is not changed
 @app.route('/addStaff', methods=('GET','POST'))
@@ -820,7 +820,7 @@ def delete(id):
 
 
 
-#### SQL Injection Scanner - in-progress
+# SQL Injection Scanner - working
 # Precondition: User inputs a string when prompted where it is sent to the function
 # Postcondition: Function checks the input for SQL injection patters. If found, input is denied. If not, input is accepted.
 def sql_injection_detection(user_input):
@@ -836,6 +836,10 @@ def sql_injection_detection(user_input):
             # Return True to indicate there are no SQL injection patterns within input
             return True
 # end detect_sql_injection()
+
+
+
+
                         
 # ------------------------------Hosting------------------------------ #
 
