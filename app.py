@@ -289,20 +289,21 @@ def login():
         conn = get_db_connection()
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM users where email=(?)', [email,])
-        user=list(cursor.fetchone())
-        Us = load_user(user[0])
+        try:
+            user=list(cursor.fetchone())
+            Us = load_user(user[0])
 
-        if email == Us.email and bcrypt.checkpw(password.encode('utf-8'), Us.password):  # and Us.is_verified
-            login_user(Us)
-            if Us.get_admin_stat() == 1:
-                userRole = "staff"
-                return redirect(url_for('staffIndex'))
-            else:
-                userRole = "student"
-                return redirect(url_for('studentIndex'))
-        else:
-            flash('Login unsuccessful')
-
+            if email == Us.email and bcrypt.checkpw(password.encode('utf-8'), Us.password):  # and Us.is_verified
+                login_user(Us)
+                if Us.get_admin_stat() == 1:
+                    userRole = "staff"
+                    return redirect(url_for('staffIndex'))
+                else:
+                    userRole = "student"
+                    return redirect(url_for('studentIndex'))
+        except:
+            flash('Login unsuccessful', category='error')
+            
         cursor.connection.commit()
         conn.close()
         
@@ -860,3 +861,4 @@ if(__name__=='__main__'):
     app.run(host="sc-hunt.mcs.uvawise.edu", port=443, debug=True)
 
 # EOF
+
