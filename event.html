@@ -48,13 +48,13 @@
         </div>
     </form>
 
-</div>
-
-<!-- Flashed messages for errors -->
-<div class="w3-container" style="margin-top:5px">
-    {% for message in get_flashed_messages() %}
-    <h1 class="w3-medium w3-text-red"><div class="alert alert-danger">{{ message }}</div></h1>
-    {% endfor %}
+    <!-- Flashed messages for errors -->
+    <div class="w3-container" style="margin-top:5px">
+        {% for message in get_flashed_messages() %}
+        <h1 class="w3-medium w3-text-red"><div class="alert alert-danger">{{ message }}</div></h1>
+        {% endfor %}
+    </div>
+    
 </div>
 
 {% endblock %}
