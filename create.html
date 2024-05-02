@@ -43,6 +43,14 @@
             <button type="submit" class="btn btn-primary">Submit</button>
         </div>
     </form>
+
+    <!--Flashed messages for errors-->
+    <div class="w3-container" style="margin-top:5px">
+        {% for message in get_flashed_messages() %}
+        <h1 class="w3-medium w3-text-red"><div class="alert alert-danger">{{ message }}</div></h1>
+        {% endfor %}
+    </div>
+    
 </div>
 
 <!--Script to add/remove a task section-->
@@ -75,12 +83,5 @@
         button.addEventListener('click', removeSection);
     });
 </script>
-
-<!--Flashed messages for errors-->
-<div class="w3-container" style="margin-top:5px">
-    {% for message in get_flashed_messages() %}
-    <h1 class="w3-medium w3-text-red"><div class="alert alert-danger">{{ message }}</div></h1>
-    {% endfor %}
-</div>
 
 {% endblock %}
