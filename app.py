@@ -20,11 +20,11 @@ mail = Mail(app) # For email
 app.config['SECRET_KEY'] = 'SeCrEtKeY' # Probably needs to be changed but not entirely sure what this is for
 
 # Email Auth Stuff - still working on this
-app.config['MAIL_SERVER'] = 'mcs.uvawise.edu'
-app.config['MAIL_PORT'] = 465
+app.config['MAIL_SERVER'] = ''
+app.config['MAIL_PORT'] = 000
 app.config['MAIL_USE_SSL'] = True
-app.config['MAIL_USERNAME'] = 'sc-hunt@mcs.uvawise.edu'
-app.config['MAIL_PASSWORD'] = 'LkkuFcFDthEWxMdv'
+app.config['MAIL_USERNAME'] = ''
+app.config['MAIL_PASSWORD'] = ''
 mail.init_app(app)
 
 userRole = "" # Global variable for user type, i.e. staff or student
@@ -201,10 +201,6 @@ def emailVerification(email, token):
     context = ssl._create_unverified_context()
     recipient = [email]
     verification_link = url_for('verifyEmail', token=token, _external=True)
-    #port = 465
-    #smtp_server = "mcs.uvawise.edu"
-    #sender_email = "sc-hunt@mcs.uvawise.edu"
-    #password = "LkkuFcFDthEWxMdv"
     
     message = f"""From: {app.config['MAIL_USERNAME']}
     To: {email}
@@ -227,10 +223,6 @@ def emailPassword(email, token):
     context = ssl._create_unverified_context()
     recipient = [email]
     reset_link = url_for('passwordReset', token=token, _external=True)
-    #port = 465
-    #smtp_server = "mcs.uvawise.edu"
-    #sender_email = "sc-hunt@mcs.uvawise.edu"
-    #password = "LkkuFcFDthEWxMdv"
     
     message = f"""From: {app.config['MAIL_USERNAME']}
     To: {email}
