@@ -17,9 +17,9 @@ import smtplib, ssl # For email
 app = Flask(__name__)
 mail = Mail(app) # For email
 
-app.config['SECRET_KEY'] = 'SeCrEtKeY' # Probably needs to be changed but not entirely sure what this is for
+app.config['SECRET_KEY'] = 'SeCrEtKeY'
 
-# Email Auth Stuff - still working on this
+# Email Auth - removed info for security reasons
 app.config['MAIL_SERVER'] = ''
 app.config['MAIL_PORT'] = 000
 app.config['MAIL_USE_SSL'] = True
@@ -34,7 +34,7 @@ userRole = "" # Global variable for user type, i.e. staff or student
 
 # ------------------------------Functions------------------------------ #
 
-# Connects to database - working
+# Connects to database
 def get_db_connection():
     conn = sqlite3.connect('database.db')
     conn.row_factory = sqlite3.Row
@@ -44,7 +44,7 @@ def get_db_connection():
 
 
 
-# Event loader - working
+# Event loader
 # Precondition: Request for an event
 # Postcondition: Event info is returned
 def get_event(id):
@@ -76,7 +76,7 @@ login_manager.login_view = "login"
 
 
 
-# User Class - working
+# User Class
 class User(UserMixin):
     def __init__(self, id, email, password, firstName, lastName, isAdmin, verificationToken, verified):
         self.id = id # Internal ID from auto incremented int in database
@@ -116,7 +116,7 @@ class User(UserMixin):
 
 
 
-# Logout Function - working
+# Logout Function
 # Precondition: User is logged in
 # Postcondition: User logged out, redirect to login page
 @app.route('/logout')
@@ -131,7 +131,7 @@ def logout():
 
 
 
-# User Loader Function - working
+# User Loader Function
 # Connects to user table in database and fetches user based on user_id
 # Precondition: No user is loaded
 # Postcondition: If user exists, user information is returned
@@ -196,7 +196,7 @@ def generate_event_json(data):
 
 # ---------------Email Verification & Password Reset--------------- #
 
-# Function to email a verification link - not working
+# Function to email a verification link
 def emailVerification(email, token):
     context = ssl._create_unverified_context()
     recipient = [email]
@@ -218,7 +218,7 @@ def emailVerification(email, token):
 
 
 
-# Function to email a password reset link - not working
+# Function to email a password reset link
 def emailPassword(email, token):
     context = ssl._create_unverified_context()
     recipient = [email]
@@ -240,7 +240,7 @@ def emailPassword(email, token):
 
 
         
-# Funtion to verify a user - not tested
+# Funtion to verify a user
 @app.route('/verify/<token>')
 def verifyEmail(token):
     conn = get_db_connection()
@@ -259,7 +259,7 @@ def verifyEmail(token):
         
 # ------------------------------Pages------------------------------ #
 
-# Login / Landing Page - Need to check for verified user when we get email working
+# Login / Landing Page
 # Precondition: Navigation to website url, no user logged in
 # Postcondition: Login page is displayed
 @app.route('/', methods=('GET','POST'))
@@ -305,7 +305,7 @@ def login():
 
 
 
-# Forgot Password Page - Accessible but nonfunctional until email is fixed
+# Forgot Password Page
 @app.route('/forgotPassword', methods=('GET','POST'))
 def forgotPassword():
     if request.method=='POST':
@@ -331,8 +331,7 @@ def forgotPassword():
 
 
 
-# Password Reset Page - Not tested/won't work without email,
-#                       also need to add token to user table for pw resets
+# Password Reset Page
 @app.route('/passwordReset/<token>', methods=('GET','POST'))
 def passwordReset(token):
     if request.method == 'POST':
@@ -370,7 +369,7 @@ def passwordReset(token):
 
 
 
-# Student Sign Up Page - working but does not send verification email
+# Student Sign Up Page
 # Precondition: User is not registered
 # Postcondition: User is registered, redirect to login page 
 @app.route('/signup', methods=('GET','POST'))
@@ -438,7 +437,7 @@ def signup():
 
 
 
-# Add Staff Member Page - working but does not send verification email
+# Add Staff Member Page
 # Precondition: An already registered staff member login is required
 # Postcondition: New staff member is registered, redirect to staff home. Current user is not changed
 @app.route('/addStaff', methods=('GET','POST'))
@@ -493,7 +492,7 @@ def addStaff():
 
 
 
-# Staff Home Page - working
+# Staff Home Page
 # Precondition: Staff login required
 # Postcondition: List of current events is displayed, links go to "Edit Event" page
 @app.route('/staffIndex')
@@ -512,7 +511,7 @@ def staffIndex():
 
 
 
-# Student Home Page - working
+# Student Home Page
 # Precondition: Student login required
 # Postcondition: List of current incomplete events is displayed, links go to "Event" pages
 @app.route('/studentIndex')
@@ -531,7 +530,7 @@ def studentIndex():
 
 
 
-# Event Page - working
+# Event Page
 # Precondition: Student login required
 # Postcondition: Tasks of specific event is displayed, allows uploads and completion of task, and completion of event
 @app.route('/<int:eventID>', methods=('GET','POST'))
@@ -608,7 +607,7 @@ def event(eventID):
 
 
 
-# Completed Events Index - working
+# Completed Events Index
 # Precondition: Student login required
 # Poscondition: Displays list of completed events of current user
 @app.route('/completedEvents')
@@ -631,7 +630,7 @@ def completedEvents():
 
 
 
-# Completed Event Page - working
+# Completed Event Page
 # Page for a specific event completed by a student, also displays content uploaded by student
 # Precondition: Student login and completed event required
 # Postcondition: Content of specific completed event is displayed
@@ -657,7 +656,7 @@ def completedEvent(eventID):
 
 
 
-# Badges Page - working
+# Badges Page
 # Precondition: Student login required
 # Postcondition: Displays earned and unearned badges for events of current user
 @app.route('/badges')
@@ -677,7 +676,7 @@ def badges():
 
 
 
-# Event Creation Page - working
+# Event Creation Page
 # Precondition: Staff login required
 # Postcondition: "Event Creation" form is displayed
 @app.route('/create', methods=('GET','POST'))
@@ -731,7 +730,7 @@ def create():
 
 
 
-# Edit Event Page - working
+# Edit Event Page
 # Precondition: Staff login required
 # Postcondition: "Edit Event" form is displayed
 @app.route('/<int:id>/edit', methods=('GET', 'POST'))
@@ -792,7 +791,7 @@ def edit(id):
 
 
 
-# Delete Event Function - working
+# Delete Event Function
 # Precondition: Staff login and exisiting event required, "Delete" is on "Edit Event" page
 # Postcondition: All instances of the event are removed from the database
 @app.route('/<int:id>/delete', methods=('POST', 'GET'))
@@ -813,7 +812,7 @@ def delete(id):
 
 
 
-# SQL Injection Scanner - working
+# SQL Injection Scanner
 # Precondition: User inputs a string when prompted where it is sent to the function
 # Postcondition: Function checks the input for SQL injection patters. If found, input is denied. If not, input is accepted.
 def sql_injection_detection(user_input):
@@ -837,20 +836,20 @@ def sql_injection_detection(user_input):
 # ------------------------------Hosting------------------------------ #
 
 # App hosted locally at http://127.0.0.1:8000 for testing
-#if(__name__=='__main__'):
-#    app.run(host="127.0.0.1", port=8000, debug=True)
-
-# App hosted at http://sc-hunt.mcs.uvawise.edu:22
-#if(__name__=='__main__'):
-#    app.run(host="sc-hunt.mcs.uvawise.edu", port=22, debug=True)
-
-# App hosted at http://sc-hunt.mcs.uvawise.edu:80
-#if(__name__=='__main__'):
-#    app.run(host="sc-hunt.mcs.uvawise.edu", port=80, debug=True)
-
-# App hosted at http://sc-hunt.mcs.uvawise.edu:443
 if(__name__=='__main__'):
-    app.run(host="sc-hunt.mcs.uvawise.edu", port=443, debug=True)
+    app.run(host="127.0.0.1", port=8000, debug=True)
+
+# App hosted at http://sc-hunt.mcs.uvawise.edu:##
+#if(__name__=='__main__'):
+#    app.run(host="sc-hunt.mcs.uvawise.edu", port=##, debug=True)
+
+# App hosted at http://sc-hunt.mcs.uvawise.edu:##
+#if(__name__=='__main__'):
+#    app.run(host="sc-hunt.mcs.uvawise.edu", port=##, debug=True)
+
+# App hosted at http://sc-hunt.mcs.uvawise.edu:###
+#if(__name__=='__main__'):
+#    app.run(host="sc-hunt.mcs.uvawise.edu", port=###, debug=True)
 
 # EOF
 
